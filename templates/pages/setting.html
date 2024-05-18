@@ -1,0 +1,50 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block breadcrumbs %}{% endblock breadcrumbs %}
+
+{% block content %}
+
+  <!-- [ Main Content ] start -->
+  <div class="row">
+    <div class="col-sm-8">
+      <div class="card">
+        <div class="card-header">
+          <h5>Settings</h5>
+        </div>
+        <div class="card-block">
+          <div class="row">
+          <h5>How do you want to receive flood alert?</h5>
+        
+            
+          <div class="form-group text-left mt-4">
+            <div class="checkbox checkbox-fill d-inline">
+                <input type="checkbox" name="checkbox-fill-1" id="checkbox-fill-1" checked="">
+                <label for="checkbox-fill-1" class="cr"> Notification</label>
+            </div>
+        </div>
+        <div class="form-group text-left mt-4">
+            <div class="checkbox checkbox-fill d-inline">
+                <input type="checkbox" name="checkbox-fill-2" id="checkbox-fill-2" checked="">
+                <label for="checkbox-fill-2" class="cr"> Email</label>
+            </div>
+        </div>
+        <div class="form-group text-left mt-4">
+            <div class="checkbox checkbox-fill d-inline">
+                <input type="checkbox" name="checkbox-fill-3" id="checkbox-fill-3" checked="">
+                <label for="checkbox-fill-3" class="cr"> Sms</label>
+            </div>
+        </div>
+       
+          </div>
+        </div>
+        <div class="text-center">
+            <button type="button" class="btn btn-square btn-primary">Update Setting</button>
+          </div>
+      </div>
+    </div>
+   
+  </div>
+  <!-- [ Main Content ] end -->
+
+ {% endblock content %}

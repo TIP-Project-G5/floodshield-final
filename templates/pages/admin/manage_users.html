@@ -1,0 +1,84 @@
+{% extends 'layouts/admin_base.html' %}
+{% load static %}
+
+{% block breadcrumbs %}{% endblock breadcrumbs %}
+
+{% block content %}
+
+<div class="row">
+  
+    <div class="col-xl-12 col-md-12">
+      <div class="card Recent-Users">
+          <div class="card-header">
+      <h4>Users Details</h4>
+    </div>
+   
+    <div class="card-block px-0 py-3">
+      <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <td>S No.</td>
+                <td>User Name</td>
+                <td>Email</td>
+                <td>Phone Number</td>
+                <td>Role</td>
+                <td>Action</td>
+                
+            </thead>
+          <tbody>
+            <tr class="unread">
+                <td>
+                    <h6>1</h6>
+                  </td>
+              <td>
+                <h6>Avon Wagle</h6>
+              </td>
+              <td>
+                <h6>avonwagle70011@gmail.com</h6>
+              </td>
+              <td>
+                <h6>123456789</h6>
+              </td>
+              <td>
+                <h6>admin</h6>
+              </td>
+              <td>
+                <h6><a href=""><i class="fas fa-edit text-c-blue f-20 m-r-15"></i></a>
+                    <a href=""><i class="fas fa-trash text-c-red f-20 m-r-15"></i></a>
+                </h6>
+              </td>
+            </tr>
+           
+            
+          </tbody>
+        </table>
+      </div>
+    </div>
+    </div>
+  </div>
+ 
+
+   
+  </div>
+  <!-- [ Main Content ] end -->
+
+{% endblock content %}
+
+{% block scripts %}
+<script>
+  // JavaScript for the accordion functionality
+  var accordions = document.getElementsByClassName("accordion");
+
+  for (var i = 0; i < accordions.length; i++) {
+    accordions[i].addEventListener("click", function() {
+      this.classList.toggle("active");
+      var panel = this.nextElementSibling;
+      if (panel.style.display === "block") {
+        panel.style.display = "none";
+      } else {
+        panel.style.display = "block";
+      }
+    });
+  }
+</script>
+{% endblock scripts %}

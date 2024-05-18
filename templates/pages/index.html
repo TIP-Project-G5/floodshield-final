@@ -1,0 +1,240 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block content %}
+
+{% block breadcrumbs %}{% endblock breadcrumbs %}
+
+<style>
+  #map {
+      height: 900px;
+      width: 50%; /* Adjust the width as needed */
+      float: left;
+  }
+  #chartContainer, #groundwaterChartContainer, #temperatureChartContainer {
+      height: 300px;
+      width: 50%; /* Adjust the width to match the map's width */
+      display: none; /* Initially hidden, shown after clicking on map markers */
+      float: left;
+  }
+  #areaTitle {
+      width: 100%;
+      text-align: center;
+      
+      margin-top: 80px;
+      font-weight: 600;
+      color: #0a1590;
+  }
+</style>
+
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+
+<div class="row">
+  <!-- Prediction start -->
+  <div class="col-xl-8 col-md-6">
+    <div class="card Recent-Users">
+      <div class="card-header">
+        <h5>Flood Prediction of Tomorrow</h5>
+      </div>
+      <div class="card-block px-0 py-3">
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <tbody>
+             
+              <tr class="unread">
+                <td>
+                  <h6 class="mb-1">Friday</h6>
+                  <p class="m-0">5/17/2024</p>
+                </td>
+                <td>
+                  <h6 class="text-muted"><i class="fas fa-circle text-c-green f-10 m-r-15"></i>16 MAY 12:56</h6>
+                </td>
+                <td><a href="#!" class="label theme-bg text-white f-12">Normal</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Prediction end -->
+
+  <!-- [ Weather ] start -->
+  <div class="col-xl-4 col-md-6 weatherclass">
+    <div class="card card-event">
+      <div class="card-block">
+        <div id="weather-info">
+          <p>Loading weather information...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- [ Weather ] end -->
+</div>
+<!-- [ Main Content ] end -->
+
+<div class="row">
+  <!-- Map start -->
+  <div class="col-xl-12 col-md-12">
+    <h3><div id="areaTitle"></div></h3>
+    <div id="map"></div>
+    <div id="chartContainer"></div>
+    <div id="groundwaterChartContainer"></div>
+	<div id="temperatureChartContainer"></div>
+  </div>
+  <!-- Map end -->
+</div>
+
+<script src="https://www.gstatic.com/charts/loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDO8LHIv6MCB5DNEVOXzhcjI4Zy2oIErzQ&callback=initMap"></script>
+
+<script>
+// Fetch weather data from WeatherAPI
+const api_key = '04fade0111b44c79836104300240105';
+const city = 'Chennai';
+const api_url = `http://api.weatherapi.com/v1/current.json?key=${api_key}&q=${city}&aqi=no`;
+
+fetch(api_url)
+  .then(response => response.json())
+  .then(data => {
+    // Update weather information on the page
+    const weatherHtml = `
+      <h4><b>Weather in ${data.location.name}</b></h4><br>
+      <p>Temperature: ${data.current.temp_c}°C</p>
+      <p>Condition: ${data.current.condition.text}</p>
+    `;
+    document.getElementById('weather-info').innerHTML = weatherHtml;
+  })
+  .catch(error => {
+    console.error('Error fetching weather data:', error);
+    document.getElementById('weather-info').innerHTML = '<p>Error fetching weather information</p>';
+  });
+</script>
+<script>
+function initMap() {
+  var map = new google.maps.Map(document.getElementById('map'), {
+    zoom: 12,
+    center: {lat: 13.0827, lng: 80.2707} // Center on Chennai
+  });
+
+  fetch('/fetch_prediction_data/')
+  .then(response => response.json())
+  .then(data => {
+    const areas = Object.values(data);
+    const markers = [];
+
+    areas.forEach((area, index) => {
+      const marker = new google.maps.Marker({
+        position: {lat: parseFloat(area.latitude), lng: parseFloat(area.longitude)},
+        map: map,
+        title: 'Zone: ' + area.location
+      });
+
+      marker.addListener('click', () => {
+        document.getElementById('temperatureChartContainer').style.display = 'block';
+        document.getElementById('chartContainer').style.display = 'block';
+        document.getElementById('groundwaterChartContainer').style.display = 'block';
+        document.getElementById('areaTitle').textContent = `Flood Prediction of  ${area.location}`;
+
+        showRainfallChart(area.rainfall, area.forecast_dates);
+        showGroundwaterChart(area.groundwater, area.forecast_dates);
+        showTemperatureChart(area.min_temp, area.max_temp, area.forecast_dates);
+        showFloodForecast(area, marker); 
+      });
+
+      markers.push(marker);
+    });
+
+    // Simulate a click on the first marker
+    if (markers.length > 0) {
+      google.maps.event.trigger(markers[0], 'click');
+    }
+  })
+  .catch(error => console.error('Error fetching data:', error));
+}
+
+google.charts.load('current', {'packages':['corechart']});
+google.charts.setOnLoadCallback(initMap);
+
+function showRainfallChart(rainfall, dates) {
+  const data = new google.visualization.DataTable();
+  data.addColumn('string', 'Date');
+  data.addColumn('number', 'Rainfall');
+  rainfall.forEach((value, index) => {
+    data.addRow([dates[index], value]);
+  });
+
+  const options = {
+    title: '7-Day Rain Forecast',
+    hAxis: {title: 'Date'},
+    vAxis: {title: 'Rainfall (mm)', minValue: 0},
+    legend: 'none'
+  };
+
+  const chart = new google.visualization.LineChart(document.getElementById('chartContainer'));
+  chart.draw(data, options);
+}
+
+function showGroundwaterChart(groundwater, dates) {
+  const data = new google.visualization.DataTable();
+  data.addColumn('string', 'Date');
+  data.addColumn('number', 'Groundwater Level');
+  groundwater.forEach((value, index) => {
+    data.addRow([dates[index], value]);
+  });
+
+  const options = {
+    title: '7-Day Mean Groundwater Level',
+    hAxis: {title: 'Date'},
+    vAxis: {title: 'Groundwater Level (m)'},
+    legend: 'none'
+  };
+
+  const chart = new google.visualization.LineChart(document.getElementById('groundwaterChartContainer'));
+  chart.draw(data, options);
+}
+
+function showTemperatureChart(minTemp, maxTemp, dates) {
+  const data = new google.visualization.DataTable();
+  data.addColumn('string', 'Date');
+  data.addColumn('number', 'Max Temperature');
+  data.addColumn('number', 'Min Temperature');
+  dates.forEach((date, index) => {
+    data.addRow([date, maxTemp[index], minTemp[index]]);
+  });
+
+  const options = {
+    title: '7-Day Temperature Forecast',
+    hAxis: {title: 'Date'},
+    vAxis: {title: 'Temperature (°C)', minValue: 0},
+    legend: { position: 'bottom' }
+  };
+
+  const chart = new google.visualization.LineChart(document.getElementById('temperatureChartContainer'));
+  chart.draw(data, options);
+}
+
+function showFloodForecast(area, marker) {
+    let forecastHtml = "<div style='width: 200px;'><h4>Flood Forecast</h4><ul>";
+    area.forecast_dates.forEach((date, index) => {
+        let floodRisk = 'No flood'; // Default message
+        let color = "green"; // Default color for no flood
+        if(area.flood_forecast[`flood_forecast${index + 1}`] === "1") {
+            floodRisk = 'Flood risk';
+            color = "red"; // Color for flood risk
+        }
+        forecastHtml += `<li style='color:${color};'>${date}: ${floodRisk}</li>`;
+    });
+    forecastHtml += "</ul></div>";
+
+    const infowindow = new google.maps.InfoWindow({
+        content: forecastHtml
+    });
+
+    infowindow.open(map, marker);
+}
+</script>
+
+{% endblock content %}

@@ -1,0 +1,185 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* Styling for labels */
+label {
+    margin-right: 10px;
+}
+
+/* Styling for select element */
+select {
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+    margin-right: 20px;
+}
+
+/* Styling for date-time inputs */
+input[type="date"] {
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+    margin-right: 20px;
+}
+
+/* Styling for button */
+button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    background-color: #007bff;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+/* Hover effect for button */
+button:hover {
+    background-color: #0056b3;
+}
+</style>
+{% block breadcrumbs %}{% endblock breadcrumbs %}
+<div class="row">
+    <div class="col-xl-12 col-md-12">
+        <div class="card Recent-Users">
+            <div class="card-header">
+                <h5>Analysis</h5>
+            </div>
+            <div class="card-body">
+                <label for="start-date">Start Date:</label>
+                <input type="date" id="start-date" value="2021-01-01" min="2021-01-01" max="2024-12-31">
+                <label for="end-date">End Date:</label>
+                <input type="date" id="end-date" value="2024-12-31" min="2021-01-01" max="2024-12-31">
+                <label for="location-select">Select Location:</label>
+                <select id="location-select" >
+                    <option value="all">All Locations</option>
+                    <option value="1">Thiruvottiyur</option>
+                    <option value="2">Manali</option>
+                    <option value="3">Madhavaram</option>
+                    <option value="4">Tondiarpet</option>
+                    <option value="5">Royapuram</option>
+                    <option value="6">Thiru-Vi-Ka Nagar</option>
+                    <option value="7">Ambattur</option>
+                    <option value="8">Anna Nagar</option>
+                    <option value="9">Teynampet</option>
+                    <option value="10">Kodambakkam</option>
+                    <option value="11">Valasaravakkam</option>
+                    <option value="12">Alandur</option>
+                    <option value="13">Adyar</option>
+                    <option value="14">Perungudi</option>
+                    <option value="15">Sholinganallur</option>
+                </select>
+                <button id="update-button" onclick="drawCharts()">Update Charts</button>
+                <div class="chart-container">
+                    <div id="rainfall_chart" style="width: 100%; height: 500px"></div>
+                </div>
+                <div class="chart-container">
+                    <div id="temperature_chart" style="width: 100%; height: 500px"></div>
+                </div>
+                <div class="chart-container">
+                    <div id="temp_rainfall_chart" style="width: 100%; height: 500px"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script>
+google.charts.load('current', {'packages':['corechart']});
+google.charts.setOnLoadCallback(drawCharts);
+
+function drawCharts() {
+    const startDate = document.getElementById('start-date').value;
+    const endDate = document.getElementById('end-date').value;
+    const location = document.getElementById('location-select').value;
+
+    Promise.all([
+        fetch(`/api/fetch_rainfall_data?start=${startDate}&end=${endDate}&location=${location}`).then(response => response.json()),
+        fetch(`/api/fetch_temperature_data?start=${startDate}&end=${endDate}&location=${location}`).then(response => response.json())
+    ]).then(([rainfallData, temperatureData]) => {
+        drawRainfallChart(rainfallData);
+        drawTemperatureChart(temperatureData);
+        drawTemperatureRainfallChart(rainfallData, temperatureData); 
+    }).catch(error => {
+        console.error("Error loading data:", error);
+    });
+}
+
+function drawRainfallChart(rainfallData) {
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Date');
+    data.addColumn('number', 'Rainfall');
+    rainfallData.forEach(item => {
+        let rainfallValue = item.total_rainfall !== undefined ? item.total_rainfall : item.rainfall_value;
+        data.addRow([item.date, parseFloat(rainfallValue)]);
+    });
+
+    var options = {
+        title: 'Rainfall Data',
+        hAxis: {title: 'Date'},
+        vAxis: {title: 'Rainfall (mm)', minValue: 0},
+        legend: { position: 'bottom' }
+    };
+
+    var chart = new google.visualization.LineChart(document.getElementById('rainfall_chart'));
+    chart.draw(data, options);
+}
+
+function drawTemperatureChart(temperatureData) {
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Date');
+    data.addColumn('number', 'Min Temperature');
+    data.addColumn('number', 'Max Temperature');
+    temperatureData.forEach(item => {
+        data.addRow([item.date, parseFloat(item.tp_min), parseFloat(item.tp_max)]);
+    });
+
+    var options = {
+        title: 'Temperature Data',
+        curveType: 'function',
+        legend: { position: 'bottom' }
+    };
+
+    var chart = new google.visualization.LineChart(document.getElementById('temperature_chart'));
+    chart.draw(data, options);
+}
+
+function drawTemperatureRainfallChart(rainfallData, temperatureData) {
+    var data = new google.visualization.DataTable();
+    data.addColumn('number', 'Max Temperature');
+    data.addColumn('number', 'Rainfall');
+
+    // Map temperature data by date for quick lookup
+    const tempMap = new Map(temperatureData.map(item => [item.date, item.tp_max]));
+
+    // Combine data based on available dates
+    rainfallData.forEach(item => {
+        if (tempMap.has(item.date)) {
+            data.addRow([parseFloat(tempMap.get(item.date)), parseFloat(item.total_rainfall)]);
+        }
+    });
+
+    var options = {
+        title: 'Temperature vs Rainfall Scatter Plot',
+        hAxis: {title: 'Max Temperature (°C)'},
+        vAxis: {title: 'Rainfall (mm)'},
+        legend: 'none',
+        colors: ['#f1ca3a'],
+        pointSize: 5
+    };
+
+    var chart = new google.visualization.ScatterChart(document.getElementById('temp_rainfall_chart'));
+    chart.draw(data, options);
+}
+
+document.getElementById('update-button').addEventListener('click', drawCharts);
+window.addEventListener('resize', drawCharts);
+</script>
+
+{% endblock content %}
